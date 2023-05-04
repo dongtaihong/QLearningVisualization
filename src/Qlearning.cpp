@@ -2,7 +2,7 @@
  * @Author: 董泰宏 2396203400@qq.com
  * @Date: 2023-04-28 09:29:41
  * @LastEditors: 董泰宏 2396203400@qq.com
- * @LastEditTime: 2023-05-04 10:12:38
+ * @LastEditTime: 2023-05-04 15:32:05
  * @FilePath: /QLearningVisualization/src/Qlearning.cpp
  * @Description:
  * Copyright (c) 2023 by 董泰宏 email: 2396203400@qq.com, All Rights Reserved.
@@ -39,31 +39,32 @@ void GridMap(double start_x, double start_y, double end_x, double end_y) {
     cv::line(visualMap, p1, p2, cv::Scalar(0, 0, 0), 1, cv::LINE_AA);
   }
 
+  // 随机生成障碍物，需要注意：很可能会生成无解的地图，所以看到地图无解时就重新运行此程序
+  std::random_device rd;
+  std::mt19937 gen(rd());
+  std::uniform_int_distribution<> disRow(0, map_w - 1);
+  std::uniform_int_distribution<> disCol(0, map_h - 1);
+  const double prob = 0.2;
+  for (int i = 0; i < map_w; ++i) {
+    for (int j = 0; j < map_h; ++j) {
+      double randNum = static_cast<double>(disRow(gen)) / (map_w - 1);
+      if (randNum < prob) {
+        cv::rectangle(visualMap,
+                      cv::Rect(i * size_x, j * size_y, size_x, size_y),
+                      cv::Scalar(0, 0, 0), -1);
+        map[i][j] = 1;
+      }
+    }
+  }
   //起点、终点
   cv::rectangle(visualMap,
                 cv::Rect(start_x * size_x, start_y * size_y, size_x, size_y),
                 cv::Scalar(0, 0, 255), -1);
+  map[start_x][start_y] = 0;
   cv::rectangle(visualMap,
                 cv::Rect(end_x * size_x, end_y * size_y, size_x, size_y),
                 cv::Scalar(0, 0, 255), -1);
-
-  //障碍物
-  for (int i = 4; i < 8; i++) {
-    cv::rectangle(visualMap, cv::Rect(i * size_x, 20 * size_y, size_x, size_y),
-                  cv::Scalar(0, 0, 0), -1);
-    map[i][20] = 1;
-  }
-
-  for (int i = 14; i < 28; i++) {
-    cv::rectangle(visualMap, cv::Rect(i * size_x, 10 * size_y, size_x, size_y),
-                  cv::Scalar(0, 0, 0), -1);
-    map[i][10] = 1;
-  }
-  for (int i = 4; i < 30; i++) {
-    cv::rectangle(visualMap, cv::Rect(25 * size_x, i * size_y, size_x, size_y),
-                  cv::Scalar(0, 0, 0), -1);
-    map[25][i] = 1;
-  }
+  map[end_x][end_y] = 0;
 }
 
 /**
@@ -211,6 +212,8 @@ QLearning::QLearning(Environment& env, int episodes, double alpha, double gamma,
       final_x.push_back(position[0]);
       final_y.push_back(position[1]);
     }
+    cv::imshow("QLearning", visualMap);
+    cv::waitKey(1);
   }
   result_q_table_ = std::move(env.q_table_);
 }
@@ -232,7 +235,8 @@ void PrintFinalPath(QLearning& rl) {
       cout << "crush obstacle" << endl;
     }
     cv::rectangle(visualMap,
-                  cv::Rect(point_x * size_x, point_y * size_y, size_x, size_y),
+                  cv::Rect(point_x * size_x, point_y * size_y, size_x * 0.8,
+                           size_y * 0.8),
                   cv::Scalar(0, 0, 255), -1);
 
     int flag = 0;
