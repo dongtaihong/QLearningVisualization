@@ -2,7 +2,7 @@
  * @Author: 董泰宏 2396203400@qq.com
  * @Date: 2023-04-28 09:29:41
  * @LastEditors: 董泰宏 2396203400@qq.com
- * @LastEditTime: 2023-04-28 16:44:22
+ * @LastEditTime: 2023-05-04 10:12:38
  * @FilePath: /QLearningVisualization/src/Qlearning.cpp
  * @Description:
  * Copyright (c) 2023 by 董泰宏 email: 2396203400@qq.com, All Rights Reserved.
@@ -10,10 +10,20 @@
 #include "Qlearning.h"
 
 #include "env.h"
+
+//地图的全局变量定义
 vector<vector<int>> map = vector<vector<int>>(map_h, vector<int>(map_w, 0));
 cv::Mat visualMap(map_h* size_y, map_w* size_x, CV_8UC3,
                   cv::Scalar(255, 255, 255));
 
+/**
+ * @description: 绘制棋盘格，起点终点用红色填充，障碍物用黑色填充
+ * @param {double} start_x
+ * @param {double} start_y
+ * @param {double} end_x
+ * @param {double} end_y
+ * @return {*}
+ */
 void GridMap(double start_x, double start_y, double end_x, double end_y) {
   // 绘制水平方向的网格线
   for (int r = 0; r <= map_w; r++) {
@@ -43,12 +53,7 @@ void GridMap(double start_x, double start_y, double end_x, double end_y) {
                   cv::Scalar(0, 0, 0), -1);
     map[i][20] = 1;
   }
-  //   for (int i = 24; i < 30; i++) {
-  //     cv::rectangle(visualMap, cv::Rect(i * size_x, 22 * size_y, size_x,
-  //     size_y),
-  //                   cv::Scalar(0, 0, 0), -1);
-  //     map[i][22] = 1;
-  //   }
+
   for (int i = 14; i < 28; i++) {
     cv::rectangle(visualMap, cv::Rect(i * size_x, 10 * size_y, size_x, size_y),
                   cv::Scalar(0, 0, 0), -1);
@@ -61,6 +66,10 @@ void GridMap(double start_x, double start_y, double end_x, double end_y) {
   }
 }
 
+/**
+ * @description: 根据传入的概率分布选择对应的index
+ * @return {*} 选择的index
+ */
 int chooseAction(const std::vector<double>& probabilities) {
   // 定义一个连续分布随机数生成器
   std::random_device rd;
@@ -72,9 +81,9 @@ int chooseAction(const std::vector<double>& probabilities) {
 }
 
 /**
- * @description: 根据当前的位置选择下一步的动作
+ * @description: 在当前的位置根据epsilon贪婪策略选择下一步的动作
  * @param {vector<int>} position
- * @return {*}
+ * @return {*} 选择的动作
  */
 int QLearning::EGreedy(Environment& env, vector<int> position) {
   //当前最优行为
@@ -113,6 +122,10 @@ int QLearning::EGreedy(Environment& env, vector<int> position) {
   return action_probb;
 }
 
+/**
+ * @description: 根据动作计算下一步的位置与收益
+ * @return {*} 下一步的位置
+ */
 vector<int> QLearning::step(Environment& env, int& action, double& reward,
                             int end_x, int end_y) {
   if (action == UP) {
@@ -148,6 +161,10 @@ vector<int> QLearning::step(Environment& env, int& action, double& reward,
   return vector<int>{};
 }
 
+/**
+ * @description: 算法主体
+ * @return {*}
+ */
 QLearning::QLearning(Environment& env, int episodes, double alpha, double gamma,
                      double epsilon, int end_x, int end_y)
     : episodes_(episodes), alpha_(alpha), gamma_(gamma), epsilon_(epsilon) {
@@ -174,15 +191,15 @@ QLearning::QLearning(Environment& env, int episodes, double alpha, double gamma,
     final_x.push_back(position[0]);
     final_y.push_back(position[1]);
     while (true) {
-      action_prob = EGreedy(env, position);  //选择的行为
+      action_prob = EGreedy(env, position);  //根据epsilon贪婪策略选择的行为
 
       double reward = 0;
       vector<int> position_next =
-          step(env, action_prob, reward, end_x, end_y);  //根据行为走到下一步
+          step(env, action_prob, reward, end_x, end_y);  //走到下一步
 
       vector<double> temp_Q =
           env.q_table_[position_next[0] * map_w + position_next[1]];
-      sort(temp_Q.begin(), temp_Q.end());  //升序排列
+      std::sort(temp_Q.begin(), temp_Q.end());  //升序排列
       double Q_max = temp_Q[3];
       env.q_table_[position[0] * map_w + position[1]][action_prob] +=
           alpha * (reward + gamma * Q_max -
@@ -194,13 +211,52 @@ QLearning::QLearning(Environment& env, int episodes, double alpha, double gamma,
       final_x.push_back(position[0]);
       final_y.push_back(position[1]);
     }
-    // if (i == episodes - 1) {
-    //   for (int w = 0; w < final_x.size(); w++) {
-    //     cout << "(" << final_x[w] << ", " << final_y[w] << ") "
-    //          << "->";
-    //   }
-    //   cout << final_x.size() << endl;
-    // }
   }
-  result_q_table_ = env.q_table_;
+  result_q_table_ = std::move(env.q_table_);
+}
+
+/**
+ * @description: 将最后的路径打印出来
+ * @param {Environment&} env
+ * @return {*}
+ */
+void PrintFinalPath(QLearning& rl) {
+  int point_x = 0;
+  int point_y = 0;
+  int Num = 1;  //记录路径的长度
+  //打印结果
+  while (point_x != (map_h - 1) || point_y != (map_w - 1)) {
+    cout << "(" << point_x << "," << point_y << ")"
+         << "->";
+    if (map[point_x][point_y] == 1) {
+      cout << "crush obstacle" << endl;
+    }
+    cv::rectangle(visualMap,
+                  cv::Rect(point_x * size_x, point_y * size_y, size_x, size_y),
+                  cv::Scalar(0, 0, 255), -1);
+
+    int flag = 0;
+    double reward_flag = UNREACHABLE;
+    for (int i = 0; i < 4; i++) {
+      if (rl.result_q_table_[point_x * map_w + point_y][i] > reward_flag) {
+        reward_flag = rl.result_q_table_[point_x * map_w + point_y][i];
+        flag = i;
+      }
+    }
+    if (flag == 0) point_x = point_x - 1;
+    if (flag == 1) point_x = point_x + 1;
+    if (flag == 2) point_y = point_y - 1;
+    if (flag == 3) point_y = point_y + 1;
+    Num++;
+    //如果路径过于长，则失败退出
+    if (Num > map_h * 20) {
+      cout << "failed" << endl;
+      break;
+    }
+  }
+  cout << "(" << point_x << "," << point_y << ") " << endl;
+  cout << Num << endl;
+
+  cv::imshow("QLearning", visualMap);
+  cv::waitKey(18000);
 }

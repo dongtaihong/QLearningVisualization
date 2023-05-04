@@ -2,7 +2,7 @@
  * @Author: 董泰宏 2396203400@qq.com
  * @Date: 2023-04-28 09:29:14
  * @LastEditors: 董泰宏 2396203400@qq.com
- * @LastEditTime: 2023-04-28 16:33:38
+ * @LastEditTime: 2023-05-04 10:13:12
  * @FilePath: /QLearningVisualization/include/env.h
  * @Description:
  * Copyright (c) 2023 by 董泰宏 email: 2396203400@qq.com, All Rights Reserved.
@@ -14,13 +14,14 @@
 #include <vector>
 using std::cout;
 using std::endl;
-using std::sort;
 using std::vector;
 
+//地图的规格
 const int map_h = 30;
 const int map_w = 30;
 const int size_x = 20;
 const int size_y = 20;
+
 #define UP 0
 #define DOWN 1
 #define LEFT 2
@@ -29,7 +30,7 @@ const int size_y = 20;
 #define OBSTACLE 1
 
 /**
- * @description: 存储着强化学习的值表Q-table, 以及行为组合action
+ * @description: 存储着强化学习的价值表Q-table, 以及行为组合action
  * @return {*}
  */
 class Environment {
